@@ -161,7 +161,7 @@ details summary{cursor:pointer;color:var(--lake);font-weight:600;margin-top:10px
     <div class="tools">
       <select class="btn" id="loadSel" aria-label="Load a saved scenario"><option value="">Saved scenarios</option></select>
       <button class="btn" id="saveBtn" type="button">Save scenario</button>
-      <button class="btn" id="resetBtn" type="button">Reset to spreadsheet</button>
+      <button class="btn" id="resetBtn" type="button">Reset to defaults</button>
     </div>
   </header>
 
@@ -258,11 +258,11 @@ details summary{cursor:pointer;color:var(--lake);font-weight:600;margin-top:10px
 </div>
 
 <script>
-/* ===== defaults: values from 3_Family_Rental_Property_Investment_Calculator_Model_10-6-2026.xlsx ===== */
+/* ===== defaults: from 3_Family_Rental_Property_Investment_Calculator_Model_10-6-2026.xlsx, rents updated to 1350/1150/750 ===== */
 const DEFAULTS = {
   name:"Three-family on the west side",
   price:285000, downPct:20, rate:7.52, term:30, closing:0, rehab:0, pmi:0, extra:0,
-  units:[{name:"Unit 1",rent:1450},{name:"Unit 2",rent:1450},{name:"Unit 3",rent:950}], otherIncome:0,
+  units:[{name:"Unit 1",rent:1350},{name:"Unit 2",rent:1150},{name:"Unit 3",rent:750}], otherIncome:0,
   taxRate:2.29, insurance:122, vacancy:5, maint:3, capex:5, mgmt:0, water:0, utilities:0, trash:0, otherExp:0,
   capexInNOI:true, hold:10, rentGrowth:2, expGrowth:3, appreciation:3, sellCost:7
 };
@@ -456,7 +456,7 @@ function render(){
   $("pmiNote").textContent = S.downPct<20 ? "Applies: you're under 20% down" : "Not applied at 20% or more down";
 
   renderStatement(r); renderSens(); renderProjection(r); renderAmort(r);
-  save("rei-current-v2", S);
+  save("rei-current-v3", S);
 }
 
 function renderStatement(r){
@@ -567,7 +567,7 @@ $("loadSel").onchange=e=>{ const all=load("rei-scenarios")||{}; if(all[e.target.
 $("amortMonthly").closest("details").addEventListener("toggle",ev=>{ if(ev.target.open) renderMonthly(); });
 
 /* ===== init ===== */
-const saved=load("rei-current-v2"); if(saved) S={...clone(DEFAULTS),...saved};
+const saved=load("rei-current-v3"); if(saved) S={...clone(DEFAULTS),...saved};
 writeInputs(); refreshSaved(); render();
 </script>
 </body>
