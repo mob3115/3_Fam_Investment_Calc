@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Three-family deal analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF1F4; --surface:#FFFFFF; --surface-2:#F6F8FA; --ink:#1C2430; --ink-2:#4A5563; --ink-3:#6B7684;
+  --line:#D3DAE1; --lake:#2B5C7C; --lake-soft:#E1ECF3; --brick:#8E3E31; --brick-soft:#F3E4E0;
+  --pass:#2D7448; --pass-soft:#E2F1E7; --fail:#A3302B; --fail-soft:#F7E3E1; --warn:#946000; --warn-soft:#F8EED9;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",system-ui,-apple-system,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11171D; --surface:#19212A; --surface-2:#1F2833; --ink:#E5E9EE; --ink-2:#B4BDC8; --ink-3:#8C97A4;
+    --line:#2D3946; --lake:#82B3D4; --lake-soft:#1E3343; --brick:#D07F6C; --brick-soft:#3A2522;
+    --pass:#6CC28C; --pass-soft:#193326; --fail:#EC857C; --fail-soft:#3B1F1D; --warn:#E3B45A; --warn-soft:#33291A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11171D; --surface:#19212A; --surface-2:#1F2833; --ink:#E5E9EE; --ink-2:#B4BDC8; --ink-3:#8C97A4;
+  --line:#2D3946; --lake:#82B3D4; --lake-soft:#1E3343; --brick:#D07F6C; --brick-soft:#3A2522;
+  --pass:#6CC28C; --pass-soft:#193326; --fail:#EC857C; --fail-soft:#3B1F1D; --warn:#E3B45A; --warn-soft:#33291A;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.15;margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--lake);outline-offset:2px}
+.wrap{max-width:1360px;margin:0 auto;padding:24px 20px 96px}
+
+/* ---------- header ---------- */
+.top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;margin-bottom:20px}
+.title-in{font-family:var(--display);font-size:clamp(28px,4vw,40px);font-weight:600;border:0;background:transparent;
+  padding:2px 0;width:100%;border-bottom:2px dashed transparent}
+.title-in:hover,.title-in:focus{border-bottom-color:var(--line);outline:none}
+.sub{color:var(--ink-3);margin:2px 0 0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500;font-size:14px}
+.btn:hover{border-color:var(--lake)}
+.btn.primary{background:var(--lake);border-color:var(--lake);color:var(--surface)}
+select.btn{padding-right:28px}
+
+/* ---------- hero: building + answers ---------- */
+.hero{display:grid;grid-template-columns:300px minmax(0,1fr);gap:28px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:24px;margin-bottom:24px}
+.house svg{width:100%;height:auto;display:block}
+.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;align-content:start}
+.answer{padding:14px 18px 16px;border-left:3px solid var(--line)}
+.answer:nth-child(n+3){border-top:1px solid var(--line)}
+.answer .q{font-size:15px;color:var(--ink-2);margin:0 0 2px}
+.answer .a{font-family:var(--display);font-size:clamp(30px,3.6vw,42px);font-weight:700;line-height:1.05;margin:0}
+.answer .why{font-size:14px;color:var(--ink-3);margin:6px 0 0}
+.answer.pass{border-left-color:var(--pass)} .answer.pass .a{color:var(--pass)}
+.answer.fail{border-left-color:var(--fail)} .answer.fail .a{color:var(--fail)}
+.answer.warn{border-left-color:var(--warn)} .answer.warn .a{color:var(--warn)}
+.badge{display:inline-block;font-family:var(--body);font-size:13px;font-weight:600;padding:2px 8px;border-radius:999px;vertical-align:middle;margin-left:8px}
+.badge.pass{background:var(--pass-soft);color:var(--pass)} .badge.fail{background:var(--fail-soft);color:var(--fail)} .badge.warn{background:var(--warn-soft);color:var(--warn)}
+.metrics{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-top:1px solid var(--line);padding-top:16px;gap:12px}
+.metric .k{font-size:13px;color:var(--ink-3)}
+.metric .v{font-family:var(--display);font-size:24px;font-weight:600}
+
+/* ---------- body layout ---------- */
+.main{display:grid;grid-template-columns:360px minmax(0,1fr);gap:24px;align-items:start}
+.inputs{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px 18px 18px}
+fieldset{border:0;border-bottom:1px solid var(--line);margin:0;padding:16px 0}
+fieldset:last-child{border-bottom:0}
+legend{font-family:var(--display);font-size:20px;font-weight:600;padding:0;margin-bottom:10px;float:left;width:100%}
+legend+*{clear:both}
+.field{display:grid;grid-template-columns:minmax(0,1fr) 128px;align-items:center;gap:10px;margin:6px 0}
+.field label{font-size:14.5px;color:var(--ink-2)}
+.field small{display:block;font-size:12.5px;color:var(--ink-3);line-height:1.3}
+.box{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);overflow:hidden}
+.box:focus-within{border-color:var(--lake);box-shadow:0 0 0 2px var(--lake-soft)}
+.box span{padding:0 8px;color:var(--ink-3);font-size:14px}
+.box input{border:0;background:transparent;width:100%;min-width:0;padding:6px 8px;text-align:right;outline:none;-moz-appearance:textfield}
+.box input::-webkit-outer-spin-button,.box input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:3px 11px;font-size:13.5px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--surface)}
+.unit-row{display:grid;grid-template-columns:minmax(0,1fr) 112px 30px;gap:8px;align-items:center;margin:6px 0}
+.unit-row input.name{border:1px solid var(--line);border-radius:6px;background:var(--surface-2);padding:6px 8px;min-width:0}
+.x{border:0;background:transparent;color:var(--ink-3);cursor:pointer;font-size:18px;line-height:1;padding:4px;border-radius:4px}
+.x:hover{color:var(--fail)}
+.link{border:0;background:none;color:var(--lake);cursor:pointer;padding:4px 0;font-weight:600;font-size:14px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--ink-2);margin:10px 0 2px}
+.check input{margin-top:4px;accent-color:var(--lake)}
+.note{font-size:13px;color:var(--ink-3);margin:6px 0 0}
+
+.results{display:grid;gap:24px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px;min-width:0}
+.panel h2{font-size:24px;margin-bottom:4px}
+.panel .lede{color:var(--ink-3);margin:0 0 14px;font-size:14.5px;max-width:70ch}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:600;color:var(--ink-3);font-size:13.5px;border-bottom:1px solid var(--line)}
+tbody td{border-bottom:1px solid var(--surface-2)}
+tr.sub td:first-child{padding-left:26px;color:var(--ink-2)}
+tr.total td{font-weight:700;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+tr.key td{font-weight:700;background:var(--lake-soft)}
+tr.key.neg td{background:var(--fail-soft)}
+td.neg{color:var(--fail)}
+td .tag{font-size:12px;color:var(--ink-3);font-weight:400;margin-left:6px}
+.grid-sens td,.grid-sens th{text-align:center}
+.grid-sens th:first-child,.grid-sens td:first-child{text-align:left}
+.grid-sens td.cell{font-weight:600;border:2px solid var(--surface)}
+.grid-sens td.base{outline:2px solid var(--ink);outline-offset:-2px}
+.split{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:4px 0 16px}
+.split .metric{background:var(--surface-2);border-radius:8px;padding:10px 12px}
+details summary{cursor:pointer;color:var(--lake);font-weight:600;margin-top:10px}
+.mobilebar{display:none}
+
+@media (max-width:1100px){
+  .metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .main{grid-template-columns:1fr}
+  .inputs{position:static;max-height:none}
+}
+@media (max-width:760px){
+  .wrap{padding:16px 12px 120px}
+  .title-in{font-size:24px}
+  .top{grid-template-columns:1fr}
+  .tools{justify-content:flex-start}
+  .hero{grid-template-columns:1fr;padding:16px}
+  .house{max-width:260px;margin:0 auto}
+  .answers{grid-template-columns:1fr}
+  .answer:nth-child(n+2){border-top:1px solid var(--line)}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .split{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel{padding:16px}
+  .mobilebar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));justify-content:space-around;gap:8px}
+  .mobilebar div{text-align:center;font-size:12px;color:var(--ink-3)}
+  .mobilebar b{display:block;font-family:var(--display);font-size:20px;color:var(--ink)}
+}
+@media (prefers-reduced-motion:no-preference){ .floor{transition:fill-opacity .25s} }
+@media print{.inputs,.tools,.mobilebar{display:none}.main{grid-template-columns:1fr}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <input class="title-in" id="propName" aria-label="Property name" value="Three-family on the west side">
+      <p class="sub">Change any assumption and everything recalculates as you type. Click the title to rename it.</p>
+    </div>
+    <div class="tools">
+      <select class="btn" id="loadSel" aria-label="Load a saved scenario"><option value="">Saved scenarios</option></select>
+      <button class="btn" id="saveBtn" type="button">Save scenario</button>
+      <button class="btn" id="resetBtn" type="button">Reset to spreadsheet</button>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="Key answers">
+    <div class="house" id="house" aria-hidden="true"></div>
+    <div class="answers">
+      <div class="answer" id="ansIncome"><p class="q">What's the total income?</p><p class="a"></p><p class="why"></p></div>
+      <div class="answer" id="ansOne"><p class="q">Does it meet the 1% rule?</p><p class="a"></p><p class="why"></p></div>
+      <div class="answer" id="ansCap"><p class="q">What's the cap rate?</p><p class="a"></p><p class="why"></p></div>
+      <div class="answer" id="ansCF"><p class="q">Does it cash flow?</p><p class="a"></p><p class="why"></p></div>
+    </div>
+    <div class="metrics" id="metrics"></div>
+  </section>
+
+  <div class="main">
+    <aside class="inputs" aria-label="Assumptions">
+      <fieldset>
+        <legend>Purchase and loan</legend>
+        <div class="field"><label for="price">Purchase price</label><div class="box"><span>$</span><input id="price" type="number" step="1000"></div></div>
+        <div class="field"><label for="downPct">Down payment</label><div class="box"><input id="downPct" type="number" step="0.5"><span>%</span></div></div>
+        <div class="chips" id="downChips"></div>
+        <div class="field"><label for="rate">Interest rate</label><div class="box"><input id="rate" type="number" step="0.01"><span>%</span></div></div>
+        <div class="field"><label for="term">Loan term</label><div class="box"><input id="term" type="number" step="1"><span>yrs</span></div></div>
+        <div class="field"><label for="closing">Closing costs</label><div class="box"><span>$</span><input id="closing" type="number" step="100"></div></div>
+        <div class="field"><label for="rehab">Repairs at purchase<small>Paid in cash up front</small></label><div class="box"><span>$</span><input id="rehab" type="number" step="500"></div></div>
+        <div class="field"><label for="pmi">Mortgage insurance<small id="pmiNote">Only applies under 20% down</small></label><div class="box"><span>$</span><input id="pmi" type="number" step="5"><span>/mo</span></div></div>
+        <div class="field"><label for="extra">Extra principal</label><div class="box"><span>$</span><input id="extra" type="number" step="25"><span>/mo</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Rents</legend>
+        <div id="units"></div>
+        <button class="link" id="addUnit" type="button">+ Add a unit</button>
+        <div class="field"><label for="otherIncome">Other income<small>Laundry, parking, storage</small></label><div class="box"><span>$</span><input id="otherIncome" type="number" step="10"><span>/mo</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Operating expenses</legend>
+        <div class="field"><label for="taxRate">Property tax rate<small>Effective rate on price, per year</small></label><div class="box"><input id="taxRate" type="number" step="0.01"><span>%</span></div></div>
+        <div class="field"><label for="insurance">Insurance</label><div class="box"><span>$</span><input id="insurance" type="number" step="5"><span>/mo</span></div></div>
+        <div class="field"><label for="vacancy">Vacancy<small>% of gross rent</small></label><div class="box"><input id="vacancy" type="number" step="0.5"><span>%</span></div></div>
+        <div class="field"><label for="maint">Maintenance<small>% of gross rent</small></label><div class="box"><input id="maint" type="number" step="0.5"><span>%</span></div></div>
+        <div class="field"><label for="capex">CapEx reserve<small>Roof, furnaces, water heaters</small></label><div class="box"><input id="capex" type="number" step="0.5"><span>%</span></div></div>
+        <div class="field"><label for="mgmt">Property management<small>% of collected rent</small></label><div class="box"><input id="mgmt" type="number" step="0.5"><span>%</span></div></div>
+        <div class="field"><label for="water">Water and sewer</label><div class="box"><span>$</span><input id="water" type="number" step="5"><span>/mo</span></div></div>
+        <div class="field"><label for="utilities">Owner-paid gas/electric<small>Common areas, shared meters</small></label><div class="box"><span>$</span><input id="utilities" type="number" step="5"><span>/mo</span></div></div>
+        <div class="field"><label for="trash">Trash, lawn, snow</label><div class="box"><span>$</span><input id="trash" type="number" step="5"><span>/mo</span></div></div>
+        <div class="field"><label for="otherExp">Other</label><div class="box"><span>$</span><input id="otherExp" type="number" step="5"><span>/mo</span></div></div>
+        <label class="check"><input type="checkbox" id="capexInNOI"> <span>Count the CapEx reserve in NOI (more conservative cap rate)</span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Holding period</legend>
+        <div class="field"><label for="hold">Years held</label><div class="box"><input id="hold" type="number" step="1" min="1" max="30"><span>yrs</span></div></div>
+        <div class="field"><label for="rentGrowth">Rent growth</label><div class="box"><input id="rentGrowth" type="number" step="0.5"><span>%/yr</span></div></div>
+        <div class="field"><label for="expGrowth">Expense growth<small>Tax, insurance, fixed costs</small></label><div class="box"><input id="expGrowth" type="number" step="0.5"><span>%/yr</span></div></div>
+        <div class="field"><label for="appreciation">Appreciation</label><div class="box"><input id="appreciation" type="number" step="0.5"><span>%/yr</span></div></div>
+        <div class="field"><label for="sellCost">Selling costs</label><div class="box"><input id="sellCost" type="number" step="0.5"><span>%</span></div></div>
+      </fieldset>
+    </aside>
+
+    <div class="results">
+      <section class="panel">
+        <h2>Operating statement</h2>
+        <p class="lede">Income at the top, then everything that comes out of it. NOI is what the building earns before the loan; cash flow is what's left after it.</p>
+        <div class="scroll"><table id="stmt"></table></div>
+      </section>
+
+      <section class="panel">
+        <h2>What if the price or rate moves?</h2>
+        <p class="lede">Monthly cash flow after all expenses and reserves. The outlined cell is your current scenario. Property tax moves with price.</p>
+        <div class="scroll"><table class="grid-sens" id="sens"></table></div>
+      </section>
+
+      <section class="panel">
+        <h2 id="projTitle">Holding period returns</h2>
+        <p class="lede">Assumes a sale at the end of the period. Cash flow each year already subtracts reserves and any extra principal.</p>
+        <div class="split" id="returns"></div>
+        <div class="scroll"><table id="proj"></table></div>
+      </section>
+
+      <section class="panel">
+        <h2>Loan payoff</h2>
+        <p class="lede" id="loanLede"></p>
+        <div class="scroll"><table id="amort"></table></div>
+        <details><summary>Show every month</summary><div class="scroll"><table id="amortMonthly"></table></div></details>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="mobilebar" aria-hidden="true">
+  <div>1% rule<b id="mbOne"></b></div><div>Cap rate<b id="mbCap"></b></div><div>Cash flow<b id="mbCF"></b></div>
+</div>
+
+<script>
+/* ===== defaults: values from 3_Family_Rental_Property_Investment_Calculator_Model_10-6-2026.xlsx ===== */
+const DEFAULTS = {
+  name:"Three-family on the west side",
+  price:285000, downPct:20, rate:7.52, term:30, closing:0, rehab:0, pmi:0, extra:0,
+  units:[{name:"Unit 1",rent:1450},{name:"Unit 2",rent:1450},{name:"Unit 3",rent:950}], otherIncome:0,
+  taxRate:2.29, insurance:122, vacancy:5, maint:3, capex:5, mgmt:0, water:0, utilities:0, trash:0, otherExp:0,
+  capexInNOI:true, hold:10, rentGrowth:2, expGrowth:3, appreciation:3, sellCost:7
+};
+const NUM_FIELDS = ["price","downPct","rate","term","closing","rehab","pmi","extra","otherIncome","taxRate","insurance",
+  "vacancy","maint","capex","mgmt","water","utilities","trash","otherExp","hold","rentGrowth","expGrowth","appreciation","sellCost"];
+const DOWN_OPTIONS = [25,20,15,10,3.5];
+let S = clone(DEFAULTS);
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+const $ = id => document.getElementById(id);
+const n = v => (isFinite(+v) ? +v : 0);
+
+/* ===== math ===== */
+function pmt(rate, nper, pv){ if(rate===0) return pv/nper; return pv*rate/(1-Math.pow(1+rate,-nper)); }
+
+function schedule(s, priceOverride, rateOverride){
+  const price = priceOverride ?? s.price, rate = (rateOverride ?? s.rate)/100/12;
+  const loan = price*(1-s.downPct/100), nper = Math.max(1,Math.round(s.term*12));
+  const pay = loan>0 ? pmt(rate,nper,loan) : 0;
+  const rows=[]; let bal=loan, m=0;
+  const pmiOn = s.downPct<20 && s.pmi>0;
+  while(bal>0.005 && m<nper){
+    m++;
+    const interest=bal*rate;
+    const principal=Math.min(pay-interest,bal);
+    const extra=Math.min(s.extra,Math.max(0,bal-principal));
+    const pmiPaid = pmiOn && bal > 0.78*price ? s.pmi : 0;  // PMI drops at 78% of original value
+    bal-=principal+extra;
+    rows.push({m,interest,principal,extra,pmi:pmiPaid,bal:Math.max(0,bal)});
+  }
+  return {loan,pay,rows};
+}
+
+function compute(s, priceOverride, rateOverride){
+  const price = priceOverride ?? s.price;
+  const rents = s.units.reduce((a,u)=>a+n(u.rent),0);
+  const gross = rents + s.otherIncome;
+  const vacancy = gross*s.vacancy/100;
+  const egi = gross - vacancy;
+  const tax = price*s.taxRate/100/12;
+  const maint = gross*s.maint/100, capex = gross*s.capex/100, mgmt = egi*s.mgmt/100;
+  const fixed = s.insurance + s.water + s.utilities + s.trash + s.otherExp;
+  const opexAll = tax + maint + capex + mgmt + fixed;
+  const opexNOI = opexAll - (s.capexInNOI ? 0 : capex);
+  const noi = egi - opexNOI;
+  const sch = schedule(s, priceOverride, rateOverride);
+  const pi = sch.pay;
+  const pmi = s.downPct<20 ? s.pmi : 0;
+  const cashflow = egi - opexAll - pi - pmi;           // before optional extra principal
+  const afterExtra = cashflow - (sch.loan>0 ? s.extra : 0);
+  const down = price*s.downPct/100;
+  const cashIn = down + s.closing + s.rehab;
+  // spreadsheet's original cap-rate method: gross rent minus tax, insurance, maintenance (no vacancy/reserves)
+  const sheetNOI = gross - (tax + s.insurance + maint);
+  return {
+    price, rents, gross, vacancy, egi, tax, maint, capex, mgmt, fixed, opexAll, opexNOI, noi, pi, pmi, cashflow, afterExtra,
+    down, cashIn, loan:sch.loan, sch,
+    onePct: rents/(price + s.rehab),
+    onePctTarget: (price + s.rehab)*0.01,
+    cap: noi*12/price,
+    sheetCap: sheetNOI*12/price,
+    coc: cashIn>0 ? afterExtra*12/cashIn : NaN,
+    dscr: (pi+pmi)>0 ? noi/(pi+pmi) : Infinity,
+    grm: gross>0 ? price/(gross*12) : NaN,
+    breakeven: gross>0 ? (opexAll - mgmt + gross*s.mgmt/100 + pi + pmi)/gross : NaN,
+    expRatio: egi>0 ? opexAll/egi : NaN
+  };
+}
+
+function irr(flows){
+  const npv = r => flows.reduce((a,c,i)=>a+c/Math.pow(1+r,i),0);
+  let lo=-0.99, hi=5, flo=npv(lo), fhi=npv(hi);
+  if(flo*fhi>0) return NaN;
+  for(let i=0;i<200;i++){ const mid=(lo+hi)/2, f=npv(mid); if(Math.abs(f)<1e-6) return mid; if(f*flo>0){lo=mid;flo=f}else{hi=mid} }
+  return (lo+hi)/2;
+}
+
+function project(s, r){
+  const H = Math.max(1,Math.min(30,Math.round(s.hold)));
+  const rows=[]; const flows=[-r.cashIn]; let cumCF=0;
+  for(let y=1;y<=H;y++){
+    const rg=Math.pow(1+s.rentGrowth/100,y-1), eg=Math.pow(1+s.expGrowth/100,y-1);
+    const gross=r.gross*12*rg, egi=gross*(1-s.vacancy/100);
+    const varExp=gross*(s.maint+s.capex)/100 + egi*s.mgmt/100;
+    const fixedExp=(r.tax+r.fixed)*12*eg;
+    const noi = egi - varExp - fixedExp + (s.capexInNOI?0:gross*s.capex/100);
+    const yr=r.sch.rows.filter(x=>Math.ceil(x.m/12)===y);
+    const debt=yr.reduce((a,x)=>a+x.interest+x.principal+x.extra+x.pmi,0);
+    const cf = egi - varExp - fixedExp - debt;
+    const bal = yr.length ? yr[yr.length-1].bal : 0;
+    const value = r.price*Math.pow(1+s.appreciation/100,y);
+    cumCF+=cf;
+    rows.push({y,gross,noi,cf,cumCF,value,bal,equity:value-bal});
+    flows.push(cf);
+  }
+  const last=rows[rows.length-1];
+  const saleNet = last.value*(1-s.sellCost/100) - last.bal;
+  flows[flows.length-1]+=saleNet;
+  const profit = cumCF + saleNet - r.cashIn;
+  return {rows,H,saleNet,profit,irr:irr(flows),multiple: r.cashIn>0 ? (cumCF+saleNet)/r.cashIn : NaN};
+}
+
+/* ===== formatting ===== */
+const money = (v,d=0) => (v<0?"−":"")+"$"+Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = (v,d=1) => isFinite(v) ? (v*100).toFixed(d)+"%" : "—";
+const esc = t => String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ===== inputs ===== */
+function readInputs(){
+  NUM_FIELDS.forEach(f=>S[f]=n($(f).value));
+  S.capexInNOI=$("capexInNOI").checked;
+  S.name=$("propName").value;
+  S.units=[...document.querySelectorAll(".unit-row")].map(r=>({name:r.querySelector(".name").value,rent:n(r.querySelector(".rent").value)}));
+}
+function writeInputs(){
+  NUM_FIELDS.forEach(f=>$(f).value=S[f]);
+  $("capexInNOI").checked=S.capexInNOI;
+  $("propName").value=S.name;
+  renderUnits(); renderChips();
+}
+function renderUnits(){
+  $("units").innerHTML = S.units.map((u,i)=>`
+    <div class="unit-row">
+      <input class="name" aria-label="Unit name" value="${esc(u.name)}">
+      <div class="box"><span>$</span><input class="rent" type="number" step="25" aria-label="${esc(u.name)} monthly rent" value="${u.rent}"></div>
+      <button class="x" type="button" data-rm="${i}" aria-label="Remove ${esc(u.name)}" ${S.units.length<2?"disabled":""}>×</button>
+    </div>`).join("");
+}
+function renderChips(){
+  $("downChips").innerHTML = DOWN_OPTIONS.map(p=>`<button type="button" class="chip" data-down="${p}" aria-pressed="${S.downPct===p}">${p}%</button>`).join("");
+}
+
+/* ===== house drawing ===== */
+function drawHouse(r){
+  const units=S.units.slice(0,6), N=units.length||1, max=Math.max(...units.map(u=>n(u.rent)),1);
+  const W=300, roof=70, fh=Math.min(78,240/N), top=roof+10, bodyH=fh*N, H=top+bodyH+18;
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img">
+  <polygon points="40,${top} ${W/2},12 ${W-40},${top}" fill="var(--brick)"/>
+  <rect x="${W/2-14}" y="${top-34}" width="28" height="22" rx="2" fill="var(--surface)" stroke="var(--brick)" stroke-width="2"/>
+  <rect x="44" y="${top}" width="${W-88}" height="${bodyH}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.5"/>`;
+  units.forEach((u,i)=>{
+    const y=top+bodyH-(i+1)*fh, op=0.18+0.62*(n(u.rent)/max);
+    g+=`<rect class="floor" x="44" y="${y}" width="${W-88}" height="${fh}" fill="var(--lake)" fill-opacity="${op.toFixed(2)}" stroke="var(--ink-3)" stroke-width="1.5"/>
+      <rect x="58" y="${y+fh*0.22}" width="22" height="${fh*0.5}" fill="var(--surface)" stroke="var(--ink-3)"/>
+      <rect x="${W-80}" y="${y+fh*0.22}" width="22" height="${fh*0.5}" fill="var(--surface)" stroke="var(--ink-3)"/>
+      <text x="${W/2}" y="${y+fh/2-3}" text-anchor="middle" font-family="var(--body)" font-size="13" fill="var(--ink)">${esc(u.name)}</text>
+      <text x="${W/2}" y="${y+fh/2+17}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="20" fill="var(--ink)">${money(n(u.rent))}</text>`;
+  });
+  g+=`<line x1="20" y1="${top+bodyH}" x2="${W-20}" y2="${top+bodyH}" stroke="var(--ink-3)" stroke-width="2"/>
+  <text x="${W/2}" y="${H-2}" text-anchor="middle" font-family="var(--body)" font-size="12" fill="var(--ink-3)">${S.units.length>6?"+"+(S.units.length-6)+" more units":"Rent per month"}</text></svg>`;
+  $("house").innerHTML=g;
+}
+
+/* ===== rendering ===== */
+function setAnswer(id, cls, a, why){
+  const el=$(id); el.className="answer"+(cls?" "+cls:"");
+  el.querySelector(".a").innerHTML=a; el.querySelector(".why").innerHTML=why;
+}
+
+function render(){
+  const r=compute(S);
+  drawHouse(r);
+
+  const unitCount=S.units.length;
+  setAnswer("ansIncome","", money(r.gross)+"<span style='font-size:.5em;font-weight:500'> /mo</span>",
+    `${money(r.gross*12)} a year from ${unitCount} unit${unitCount===1?"":"s"}${S.otherIncome?` plus ${money(S.otherIncome)}/mo other income`:""}. After ${S.vacancy}% vacancy you'd collect about ${money(r.egi)}/mo.`);
+
+  const onePass=r.onePct>=0.01;
+  setAnswer("ansOne", onePass?"pass":"fail", (onePass?"Yes":"No")+`<span class="badge ${onePass?"pass":"fail"}">${pct(r.onePct,2)}</span>`,
+    onePass ? `Rent is ${pct(r.onePct,2)} of ${S.rehab?"price plus repairs":"the price"}. The bar is ${money(r.onePctTarget)}/mo, so you clear it by ${money(r.rents-r.onePctTarget)}.`
+            : `Rents need to reach ${money(r.onePctTarget)}/mo, ${money(r.onePctTarget-r.rents)} more than now, or the price would need to be ${money(r.rents*100 - S.rehab)}.`);
+
+  const capCls = r.cap>=0.08?"pass":r.cap>=0.06?"warn":"fail";
+  setAnswer("ansCap", capCls, pct(r.cap,1),
+    `NOI of ${money(r.noi*12)}/yr on a ${money(r.price)} price, after vacancy and all operating costs${S.capexInNOI?" including the CapEx reserve":""}. The spreadsheet's shorter method (tax, insurance, maintenance only) gives ${pct(r.sheetCap,1)}.`);
+
+  const cfCls = r.afterExtra>=200*unitCount?"pass":r.afterExtra>=0?"warn":"fail";
+  setAnswer("ansCF", cfCls, (r.afterExtra>=0?"+":"")+money(r.afterExtra)+"<span style='font-size:.5em;font-weight:500'> /mo</span>",
+    `${money(r.afterExtra*12)} a year after the mortgage, taxes, insurance and every reserve${S.extra?` and ${money(S.extra)}/mo extra principal`:""}. That's ${money(r.afterExtra/Math.max(unitCount,1))} per unit per month.`);
+
+  const M=(k,v)=>`<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  $("metrics").innerHTML =
+    M("Cash to close", money(r.cashIn)) +
+    M("Cash-on-cash return", pct(r.coc)) +
+    M("Debt coverage (DSCR)", isFinite(r.dscr)?r.dscr.toFixed(2)+"×":"No loan") +
+    M("Break-even occupancy", pct(r.breakeven,0)) +
+    M("Gross rent multiplier", isFinite(r.grm)?r.grm.toFixed(1):"—") +
+    M("Expense ratio", pct(r.expRatio,0));
+
+  $("mbOne").textContent=pct(r.onePct,2); $("mbCap").textContent=pct(r.cap,1); $("mbCF").textContent=money(r.afterExtra);
+  $("pmiNote").textContent = S.downPct<20 ? "Applies: you're under 20% down" : "Not applied at 20% or more down";
+
+  renderStatement(r); renderSens(); renderProjection(r); renderAmort(r);
+  save("rei-current-v2", S);
+}
+
+function renderStatement(r){
+  const row=(label,m,cls="",tag="")=>`<tr class="${cls}"><td>${label}${tag?`<span class="tag">${tag}</span>`:""}</td><td class="${m<0?"neg":""}">${money(m)}</td><td class="${m<0?"neg":""}">${money(m*12)}</td></tr>`;
+  let h=`<thead><tr><th>Line</th><th>Monthly</th><th>Annual</th></tr></thead><tbody>`;
+  S.units.forEach(u=>h+=row(esc(u.name),n(u.rent),"sub"));
+  if(S.otherIncome) h+=row("Other income",S.otherIncome,"sub");
+  h+=row("Gross scheduled income",r.gross,"total");
+  h+=row(`Vacancy (${S.vacancy}%)`,-r.vacancy);
+  h+=row("Effective gross income",r.egi,"total");
+  h+=row("Property tax",-r.tax,"sub");
+  h+=row("Insurance",-S.insurance,"sub");
+  h+=row(`Maintenance (${S.maint}%)`,-r.maint,"sub");
+  h+=row(`CapEx reserve (${S.capex}%)`,-r.capex,"sub",S.capexInNOI?"":"below NOI");
+  if(S.mgmt) h+=row(`Management (${S.mgmt}%)`,-r.mgmt,"sub");
+  if(S.water) h+=row("Water and sewer",-S.water,"sub");
+  if(S.utilities) h+=row("Owner-paid gas/electric",-S.utilities,"sub");
+  if(S.trash) h+=row("Trash, lawn, snow",-S.trash,"sub");
+  if(S.otherExp) h+=row("Other",-S.otherExp,"sub");
+  h+=row("Net operating income (NOI)",r.noi,"key");
+  if(!S.capexInNOI) h+=row(`CapEx reserve (${S.capex}%)`,-r.capex);
+  h+=row("Mortgage principal and interest",-r.pi);
+  if(r.pmi) h+=row("Mortgage insurance",-r.pmi);
+  h+=row("Cash flow",r.cashflow,"key"+(r.cashflow<0?" neg":""));
+  if(S.extra && r.loan>0){ h+=row("Extra principal",-S.extra); h+=row("Cash left after extra principal",r.afterExtra,"total"); }
+  $("stmt").innerHTML=h+"</tbody>";
+}
+
+function renderSens(){
+  const prices=[-0.10,-0.05,0,0.05,0.10], rates=[-1,-0.5,0,0.5,1];
+  let h=`<thead><tr><th>Rate \\ Price</th>${prices.map(p=>`<th>${money(S.price*(1+p))}</th>`).join("")}</tr></thead><tbody>`;
+  rates.forEach(dr=>{
+    const rate=Math.max(0,S.rate+dr);
+    h+=`<tr><td><b>${rate.toFixed(2)}%</b></td>`;
+    prices.forEach(dp=>{
+      const v=compute(S,S.price*(1+dp),rate).afterExtra;
+      const t=Math.max(-1,Math.min(1,v/1500));
+      const bg = v>=0 ? `color-mix(in srgb, var(--pass) ${Math.round(10+t*45)}%, var(--surface))` : `color-mix(in srgb, var(--fail) ${Math.round(10-t*45)}%, var(--surface))`;
+      h+=`<td class="cell${dp===0&&dr===0?" base":""}" style="background:${bg}">${money(v)}</td>`;
+    });
+    h+="</tr>";
+  });
+  $("sens").innerHTML=h+"</tbody>";
+}
+
+function renderProjection(r){
+  const p=project(S,r);
+  $("projTitle").textContent=`If you hold it ${p.H} year${p.H===1?"":"s"}`;
+  const M=(k,v)=>`<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  $("returns").innerHTML = M("Annualized return (IRR)", pct(p.irr)) + M("Equity multiple", isFinite(p.multiple)?p.multiple.toFixed(2)+"×":"—")
+    + M("Net from sale", money(p.saleNet)) + M("Total profit", money(p.profit));
+  let h=`<thead><tr><th>Year</th><th>Gross rent</th><th>NOI</th><th>Cash flow</th><th>Cumulative</th><th>Value</th><th>Loan balance</th><th>Equity</th></tr></thead><tbody>`;
+  p.rows.forEach(x=>h+=`<tr><td>${x.y}</td><td>${money(x.gross)}</td><td>${money(x.noi)}</td><td class="${x.cf<0?"neg":""}">${money(x.cf)}</td><td>${money(x.cumCF)}</td><td>${money(x.value)}</td><td>${money(x.bal)}</td><td>${money(x.equity)}</td></tr>`);
+  $("proj").innerHTML=h+"</tbody>";
+}
+
+function renderAmort(r){
+  const rows=r.sch.rows;
+  if(!rows.length){ $("loanLede").textContent="No loan: this scenario is an all-cash purchase."; $("amort").innerHTML=""; $("amortMonthly").innerHTML=""; return; }
+  const totalInt=rows.reduce((a,x)=>a+x.interest,0), months=rows.length;
+  const base=schedule({...S,extra:0}); const baseInt=base.rows.reduce((a,x)=>a+x.interest,0);
+  const yrs=Math.floor(months/12), mo=months%12;
+  $("loanLede").textContent=`${money(r.loan)} borrowed at ${S.rate}% for ${S.term} years: ${money(r.pi,2)}/mo principal and interest. `+
+    (S.extra>0 ? `With ${money(S.extra)}/mo extra it's paid off in ${yrs} years${mo?` ${mo} months`:""}, saving ${money(baseInt-totalInt)} in interest.` : `Total interest over the life of the loan: ${money(totalInt)}.`);
+  let h=`<thead><tr><th>Year</th><th>Interest</th><th>Principal</th>${S.extra?"<th>Extra</th>":""}<th>Ending balance</th></tr></thead><tbody>`;
+  for(let y=1;y<=Math.ceil(months/12);y++){
+    const yr=rows.filter(x=>Math.ceil(x.m/12)===y);
+    const s=k=>yr.reduce((a,x)=>a+x[k],0);
+    h+=`<tr><td>${y}</td><td>${money(s("interest"))}</td><td>${money(s("principal"))}</td>${S.extra?`<td>${money(s("extra"))}</td>`:""}<td>${money(yr[yr.length-1].bal)}</td></tr>`;
+  }
+  $("amort").innerHTML=h+"</tbody>";
+  if($("amortMonthly").closest("details").open) renderMonthly(rows);
+}
+function renderMonthly(rows){
+  rows = rows || compute(S).sch.rows;
+  let h=`<thead><tr><th>Month</th><th>Interest</th><th>Principal</th><th>Extra</th><th>Balance</th></tr></thead><tbody>`;
+  rows.forEach(x=>h+=`<tr><td>${x.m}</td><td>${money(x.interest,2)}</td><td>${money(x.principal,2)}</td><td>${money(x.extra,2)}</td><td>${money(x.bal,2)}</td></tr>`);
+  $("amortMonthly").innerHTML=h+"</tbody>";
+}
+
+/* ===== storage (per-viewer, this browser only) ===== */
+function save(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function load(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function refreshSaved(){
+  const all=load("rei-scenarios")||{};
+  $("loadSel").innerHTML=`<option value="">Saved scenarios</option>`+Object.keys(all).map(k=>`<option>${esc(k)}</option>`).join("");
+}
+
+/* ===== events ===== */
+document.addEventListener("input", e=>{
+  if(e.target.closest(".inputs")||e.target.id==="propName"){ readInputs(); if(e.target.id==="downPct") renderChips(); render(); }
+});
+document.addEventListener("change", e=>{ if(e.target.id==="capexInNOI"){ readInputs(); render(); } });
+document.addEventListener("click", e=>{
+  const d=e.target.closest("[data-down]");
+  if(d){ S.downPct=+d.dataset.down; $("downPct").value=S.downPct; renderChips(); readInputs(); render(); }
+  const rm=e.target.closest("[data-rm]");
+  if(rm){ readInputs(); S.units.splice(+rm.dataset.rm,1); renderUnits(); render(); }
+});
+$("addUnit").onclick=()=>{ readInputs(); S.units.push({name:"Unit "+(S.units.length+1),rent:0}); renderUnits(); render(); };
+$("resetBtn").onclick=()=>{ S=clone(DEFAULTS); writeInputs(); render(); };
+$("saveBtn").onclick=()=>{
+  readInputs(); const all=load("rei-scenarios")||{}; const key=(S.name||"Untitled").trim();
+  all[key]=clone(S); save("rei-scenarios",all); refreshSaved(); $("loadSel").value=key;
+  $("saveBtn").textContent="Saved"; setTimeout(()=>$("saveBtn").textContent="Save scenario",1400);
+};
+$("loadSel").onchange=e=>{ const all=load("rei-scenarios")||{}; if(all[e.target.value]){ S={...clone(DEFAULTS),...clone(all[e.target.value])}; writeInputs(); render(); } };
+$("amortMonthly").closest("details").addEventListener("toggle",ev=>{ if(ev.target.open) renderMonthly(); });
+
+/* ===== init ===== */
+const saved=load("rei-current-v2"); if(saved) S={...clone(DEFAULTS),...saved};
+writeInputs(); refreshSaved(); render();
+</script>
+</body>
+</html>
